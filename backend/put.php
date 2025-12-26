@@ -1,7 +1,7 @@
 <?php
 require "db.php";
 
-$ADMIN_PASS = "CHANGE_ME_123";
+$ADMIN_PASS = "CHANGE_ME_1234";
 
 $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
