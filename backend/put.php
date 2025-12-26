@@ -1,74 +1,63 @@
 <?php
 require "db.php";
 
-/* ==========================
-   CONFIG
-========================== */
-$ADMIN_PASS = "CHANGE_ME_1234";
+$ADMIN_PASS = "CHANGE_ME_123";
 
-/* ==========================
-   SHOW HTML FORM IF NOT JSON
-========================== */
 $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-$isJson = str_contains($contentType, 'application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET' || !$isJson) {
+/* ==========================
+   HTML FORM (GET ONLY)
+========================== */
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 ?>
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Add Short Link</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f3f3f3;
-        }
-        .box {
-            max-width: 400px;
-            margin: 60px auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,.1);
-        }
-        input, button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-        }
-        button {
-            background: #007bff;
-            color: #fff;
-            border: 0;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Add Short Link</title>
+<style>
+body { font-family: Arial; background:#f3f3f3; }
+.box {
+    max-width:400px;
+    margin:60px auto;
+    background:#fff;
+    padding:20px;
+    border-radius:8px;
+}
+input,button {
+    width:90%;
+    padding:10px;
+    margin-top:10px;
+}
+button {
+    background:#007bff;
+    color:#fff;
+    border:0;
+}
+</style>
 </head>
 <body>
 <div class="box">
-    <h3>Add / Update Link</h3>
-    <form method="post">
-        <input name="pass" placeholder="Admin password" required>
-        <input name="code" placeholder="Short code (e.g. mml)" required>
-        <input name="url" placeholder="Long URL" required>
-        <button>Add / Update</button>
-    </form>
+<h3>Add / Update Link</h3>
+<form method="post">
+    <input name="pass" placeholder="Admin password" required>
+    <input name="code" placeholder="Short code" required>
+    <input name="url" placeholder="Long URL" required>
+    <button>Save</button>
+</form>
 </div>
 </body>
 </html>
 <?php
-    exit;
+exit;
 }
 
 /* ==========================
-   HANDLE FORM POST
+   FORM POST MODE
 ========================== */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($contentType)) {
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && str_contains($contentType, 'application/x-www-form-urlencoded')
+) {
     if ($_POST['pass'] !== $ADMIN_PASS) {
         die("Unauthorized");
     }
@@ -76,20 +65,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($contentType)) {
     $code = trim($_POST['code']);
     $url  = trim($_POST['url']);
 
-    $stmt = $pdo->prepare("SELECT id, long_url FROM links WHERE short_code = ?");
+    $stmt = $pdo->prepare("SELECT id,long_url FROM links WHERE short_code=?");
     $stmt->execute([$code]);
-    $existing = $stmt->fetch();
+    $row = $stmt->fetch();
 
-    if ($existing) {
-        if ($existing['long_url'] !== $url) {
+    if ($row) {
+        if ($row['long_url'] !== $url) {
             $pdo->prepare("UPDATE links SET long_url=? WHERE id=?")
-                ->execute([$url, $existing['id']]);
+                ->execute([$url,$row['id']]);
             echo "Updated ✅";
         } else {
             echo "No change ⏭";
         }
     } else {
-        $pdo->prepare("INSERT INTO links (short_code, long_url) VALUES (?,?)")
+        $pdo->prepare("INSERT INTO links (short_code,long_url) VALUES (?,?)")
             ->execute([$code, $url]);
         echo "Inserted ✅";
     }
@@ -100,28 +89,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($contentType)) {
    JSON API MODE
 ========================== */
 header("Content-Type: application/json");
+
 $input = json_decode(file_get_contents("php://input"), true);
 
-if (!$input || ($input["pass"] ?? '') !== $ADMIN_PASS) {
+if (!$input || ($input['pass'] ?? '') !== $ADMIN_PASS) {
     http_response_code(401);
-    echo json_encode(["error" => "Unauthorized"]);
+    echo json_encode(["error"=>"Unauthorized"]);
     exit;
 }
 
 $result = ["inserted"=>[], "updated"=>[], "skipped"=>[]];
 
-foreach ($input["links"] as $code => $url) {
-
-    $stmt = $pdo->prepare("SELECT id, long_url FROM links WHERE short_code=?");
+foreach ($input['links'] as $code => $url) {
+    $stmt = $pdo->prepare("SELECT id,long_url FROM links WHERE short_code=?");
     $stmt->execute([$code]);
-    $existing = $stmt->fetch();
+    $row = $stmt->fetch();
 
-    if ($existing) {
-        if ($existing['long_url'] === $url) {
+    if ($row) {
+        if ($row['long_url'] === $url) {
             $result["skipped"][] = $code;
         } else {
             $pdo->prepare("UPDATE links SET long_url=? WHERE id=?")
-                ->execute([$url, $existing['id']]);
+                ->execute([$url,$row['id']]);
             $result["updated"][] = $code;
         }
     } else {
