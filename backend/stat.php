@@ -5,7 +5,7 @@ header("Content-Type: application/json");
 if (isset($_GET['code'])) {
     // Single link stats
     $stmt = $pdo->prepare("
-        SELECT short_code, long_url, hits, created_at
+        SELECT short_code, long_url, hits, created_at, name, phone
         FROM links WHERE short_code = ?
     ");
     $stmt->execute([$_GET['code']]);
@@ -23,7 +23,7 @@ if (isset($_GET['code'])) {
 
 // All links stats
 $stmt = $pdo->query("
-    SELECT short_code, long_url, hits, created_at
+    SELECT short_code, long_url, hits, created_at, name, phone
     FROM links ORDER BY hits DESC
 ");
 

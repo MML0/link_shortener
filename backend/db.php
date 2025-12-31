@@ -18,3 +18,36 @@ try {
 } catch (PDOException $e) {
     die("DB Connection failed: " . $e->getMessage());
 }
+
+// Telegram config
+$config = [
+    'telegram' => [
+        'bot_token' => '8566:beqa71E',
+        'bot_username' => 'Awefwefbot',
+        'admin_chatid' => '234234345',
+    ]
+];
+
+// Function to send message via Telegram Bot
+function sendTelegramMessage($chatId, $text): void {
+    global $config;
+
+    $token = $config['telegram']['bot_token'];
+    $url   = "https://api.telegram.org/bot{$token}/sendMessage";
+
+    $data = [
+        'chat_id' => $chatId,
+        'text'    => $text,
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($data),
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+        CURLOPT_RETURNTRANSFER => true,
+    ]);
+    curl_exec($ch);
+    curl_close($ch);
+}
+?>
