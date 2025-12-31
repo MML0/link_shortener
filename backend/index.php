@@ -18,7 +18,7 @@ if ($link) {
     // $message .= "Long URL: {$link['long_url']}\n";
     $message .= "Hits: {$link['hits']}\n";
     $message .= "Name: {$link['name']}\n";
-    $message .= "Phone: {$link['phone']}";
+    $message .= "Phone: {$link['phone']}\n";
     $phone = $link['phone'];
     if ($phone && $phone[0] === '0') {
         $phone = '+98' . substr($phone, 1);
