@@ -1,18 +1,27 @@
 <?php
 require "db.php";
 
+// Check if URL has ?fresh query string
+if (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] === 'fresh') {
+    $pdo->exec("DROP TABLE IF EXISTS links");
+}
+
 /* ==========================
    CREATE TABLE
 ========================== */
 $sql = "
 CREATE TABLE IF NOT EXISTS links (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    short_code VARCHAR(50) UNIQUE NOT NULL,
+    short_code VARCHAR(50)
+        CHARACTER SET utf8mb4
+        COLLATE utf8mb4_bin
+        NOT NULL,
     long_url TEXT NOT NULL,
     name VARCHAR(100) DEFAULT NULL,
     phone VARCHAR(20) DEFAULT NULL,
     hits INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_short_code (short_code)
 );
 ";
 
