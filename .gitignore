@@ -1,5 +1,5 @@
-backend/Birth_10-16.csv
 output_map.xlsx
 # backend/put_from_csv.py
 backend/output_map*
 backend/used_codes.json
+backend/Birth_*

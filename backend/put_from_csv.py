@@ -10,13 +10,14 @@ import datetime
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-CSV_PATH = 'backend/Birth_10-16.csv'
+CSV_PATH = 'backend/Birth_10-17.csv'
 BASE_URL = 'https://banoo.khas.shop/'
+SHORT_LINK_BASE = 'https://ac8.ir/'  # <-- short link base
 BATCH_SIZE = 100
 
 SHORT_CHARS = string.ascii_letters + string.digits  # a-zA-Z0-9
 USED_CODES_FILE = 'backend/used_codes.json'  # local tracking of all codes
-EXCEL_FILE = f"backend/output_map_{datetime.datetime.now().strftime('%y%m%d')}.xlsx"
+EXCEL_FILE = f"backend/output_map_{datetime.datetime.now().strftime('%y%m%d_%H%M%S')}.xlsx"
 
 
 # -------------------------------
@@ -113,6 +114,7 @@ def main():
         details = result_map.get(code, {})
         all_rows.append({
             'Short Code': code,
+            'Short Link': f"{SHORT_LINK_BASE}{code}",  # <-- added short link
             'URL': details.get('url', BASE_URL),
             'Name': details.get('name', user['FIRST_NAME'] + ' ' + user['LAST_NAME']),
             'Phone': details.get('phone', user['MOBILE']),
