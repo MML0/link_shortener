@@ -2,7 +2,6 @@ import requests
 
 url = "https://ac8.ir/put.php"
 
-
 data = {
     "pass": "CHANGE_ME_123",
     "links": {
