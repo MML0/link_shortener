@@ -2,12 +2,13 @@
 require "db.php";
 
 // Check if URL has ?fresh query string
-if (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] === 'fresh') {
+if (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] === 'fresh2') {
     $pdo->exec("DROP TABLE IF EXISTS links");
+    echo "DROPED<br>";
 }
 
 /* ==========================
-   CREATE TABLE
+   CREATE LINKS TABLE
 ========================== */
 $sql = "
 CREATE TABLE IF NOT EXISTS links (
@@ -24,7 +25,17 @@ CREATE TABLE IF NOT EXISTS links (
     UNIQUE KEY uniq_short_code (short_code)
 );
 ";
+$pdo->exec($sql);
 
+/* ==========================
+   CREATE DAILY HITS TABLE
+========================== */
+$sql = "
+CREATE TABLE IF NOT EXISTS daily_hits (
+    hit_date DATE PRIMARY KEY,
+    hits INT DEFAULT 0
+);
+";
 $pdo->exec($sql);
 
 /* ==========================

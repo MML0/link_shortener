@@ -25,9 +25,17 @@ if ($link) {
     }
     $message .= "Phone: $phone";
 
-    // Send the Telegram notification to admin
-    sendTelegramMessage($adminChatId, $message);
-    sendTelegramMessage('681048151', $message);
+    // Send the Telegram notification to admin if its not home page
+    if ($link['short_code'] != '__home__') {
+        sendTelegramMessage($adminChatId, $message);
+        sendTelegramMessage('681048151', $message);
+        // global daily hits
+        $pdo->prepare("
+            INSERT INTO daily_hits (hit_date, hits)
+            VALUES (CURDATE(), 1)
+            ON DUPLICATE KEY UPDATE hits = hits + 1
+        ")->execute();
+    }
 
     // Redirect to the long URL
     header("Location: " . $link['long_url']);

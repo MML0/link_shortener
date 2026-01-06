@@ -2,6 +2,39 @@
 require "db.php";
 header("Content-Type: application/json");
 
+function getLast7DaysHits($pdo) {
+    $stmt = $pdo->query("
+        SELECT hit_date, hits
+        FROM daily_hits
+        ORDER BY hit_date DESC
+        LIMIT 7
+    ");
+    $rows = $stmt->fetchAll();
+
+    // Reverse to show oldest → newest
+    return array_reverse($rows);
+}
+function formatLast7DaysHitsForTelegram($hitsArray) {
+    $text = "📊 Daily Hits Last 7 Days:\n";
+    foreach ($hitsArray as $row) {
+        $date = date("M d", strtotime($row['hit_date']));
+        $text .= "• $date: {$row['hits']} hits\n";
+    }
+    return $text;
+}
+$dailyHits = getLast7DaysHits($pdo);
+$message = formatLast7DaysHitsForTelegram($dailyHits);
+
+// Send to multiple admins
+$adminChatId = $config['telegram']['admin_chatid'];
+$admins = [$adminChatId, '681048151'];
+foreach ($admins as $id) {
+    sendTelegramMessage($id, $message);
+}
+$response = [
+    "daily_hits_last_7_days" => $dailyHits
+];
+
 if (isset($_GET['code'])) {
     // Single link stats
     $stmt = $pdo->prepare("
@@ -17,7 +50,9 @@ if (isset($_GET['code'])) {
         exit;
     }
 
-    echo json_encode($data, JSON_PRETTY_PRINT);
+    $response["link"] = $data;
+
+    echo json_encode($response, JSON_PRETTY_PRINT);
     exit;
 }
 
@@ -27,4 +62,6 @@ $stmt = $pdo->query("
     FROM links ORDER BY hits DESC
 ");
 
-echo json_encode($stmt->fetchAll(), JSON_PRETTY_PRINT);
+$response["links"] = $stmt->fetchAll();
+
+echo json_encode($response, JSON_PRETTY_PRINT);
