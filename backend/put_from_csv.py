@@ -23,8 +23,6 @@ EXCEL_FILE = f"backend/output_map_{datetime.datetime.now().strftime('%y%m%d')}.x
 # Generate short codes dynamically
 # -------------------------------
 def generate_short_codes(length=2):
-    if length < 1:
-        raise ValueError("Code length must be >= 1")
     return ("".join(p) for p in itertools.product(SHORT_CHARS, repeat=length))
 
 
@@ -58,7 +56,7 @@ def send_batch_to_server(batch):
 
 
 # -------------------------------
-# Load used codes from file
+# Load / save used codes
 # -------------------------------
 def load_used_codes():
     if os.path.exists(USED_CODES_FILE):
@@ -67,39 +65,32 @@ def load_used_codes():
     return set()
 
 
-# -------------------------------
-# Save used codes to file
-# -------------------------------
 def save_used_codes(codes):
     with open(USED_CODES_FILE, 'w', encoding='utf-8') as f:
         json.dump(list(codes), f, ensure_ascii=False, indent=2)
 
 
 # -------------------------------
-# Main function
+# Main
 # -------------------------------
 def main():
     users = read_csv(CSV_PATH)
     used_codes = load_used_codes()
 
-    # Start with 2-character codes
     code_length = 2
     short_code_gen = generate_short_codes(code_length)
-
-    user_links = []
+    all_rows = []  # Collect all rows for a single Excel sheet
 
     for user in users:
         # Get next unique code
         try:
             code = next(short_code_gen)
         except StopIteration:
-            # If 2-char codes exhausted, increment to 3 chars
             code_length += 1
             print(f"All {code_length-1}-char codes exhausted. Switching to {code_length}-char codes.")
             short_code_gen = generate_short_codes(code_length)
             code = next(short_code_gen)
 
-        # Ensure globally unique
         while code in used_codes:
             try:
                 code = next(short_code_gen)
@@ -110,49 +101,34 @@ def main():
                 code = next(short_code_gen)
 
         used_codes.add(code)
-        user_links.append({
+        user_link = {
             'short_code': code,
             'link': BASE_URL,
             'user': user
+        }
+
+        # Send single or batch to server
+        result_map = send_batch_to_server([user_link]) or {}
+
+        details = result_map.get(code, {})
+        all_rows.append({
+            'Short Code': code,
+            'URL': details.get('url', BASE_URL),
+            'Name': details.get('name', user['FIRST_NAME'] + ' ' + user['LAST_NAME']),
+            'Phone': details.get('phone', user['MOBILE']),
+            'User First Name': user.get('FIRST_NAME', ''),
+            'User Last Name': user.get('LAST_NAME', ''),
+            'User Mobile': user.get('MOBILE', '')
         })
 
-    # Save codes locally
+    # Save used codes locally
     save_used_codes(used_codes)
 
-    # Split into batches
-    batches = [user_links[i:i + BATCH_SIZE] for i in range(0, len(user_links), BATCH_SIZE)]
+    # Write all rows to **one Excel sheet**
+    df = pd.DataFrame(all_rows)
+    df.to_excel(EXCEL_FILE, sheet_name='All_Links', index=False)
 
-    # Prepare Excel writer
-    writer = pd.ExcelWriter(EXCEL_FILE, engine='xlsxwriter')
-
-    for i, batch in enumerate(batches):
-        print(f'Batch {i+1}')
-
-        # Send batch to server
-        result_map = send_batch_to_server(batch)
-        if result_map is None:
-            print(f"Failed to get valid response for batch {i+1}")
-            continue
-
-        # Prepare data for Excel
-        rows = []
-        for short_code, details in result_map.items():
-            user_info = next((entry['user'] for entry in batch if entry['short_code'] == short_code), None)
-            if user_info:
-                rows.append({
-                    'Short Code': short_code,
-                    'URL': details.get('url', ''),
-                    'Name': details.get('name', ''),
-                    'Phone': details.get('phone', ''),
-                    'User First Name': user_info.get('FIRST_NAME', ''),
-                    'User Last Name': user_info.get('LAST_NAME', ''),
-                    'User Mobile': user_info.get('MOBILE', '')
-                })
-
-        df = pd.DataFrame(rows)
-        df.to_excel(writer, sheet_name=f'Batch_{i+1}', index=False)
-
-    writer.close()
+    print(f"Excel saved: {EXCEL_FILE}")
     print("All done ✅")
 
 

@@ -4,7 +4,7 @@ require "db.php";
 // Check if URL has ?fresh query string
 if (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] === 'fresh2') {
     $pdo->exec("DROP TABLE IF EXISTS links");
-    echo "DROPED<br>";
+    echo "links DROPED<br>";
 }
 
 /* ==========================
