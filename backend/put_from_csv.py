@@ -12,18 +12,44 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 CSV_PATH = 'backend/Birth_10-17.csv'
 BASE_URL = 'https://banoo.khas.shop/'
-SHORT_LINK_BASE = 'https://ac8.ir/'  # <-- short link base
-BATCH_SIZE = 100
+BASE_URL = 'https://banoo.khas.shop/tgtg17/'
+SHORT_LINK_BASE = 'ac8.ir/'  # <-- short link base
+BATCH_SIZE = 50
 
 SHORT_CHARS = string.ascii_letters + string.digits  # a-zA-Z0-9
 USED_CODES_FILE = 'backend/used_codes.json'  # local tracking of all codes
 EXCEL_FILE = f"backend/output_map_{datetime.datetime.now().strftime('%y%m%d_%H%M%S')}.xlsx"
 
+def normalize_persian(text: str) -> str:
+    """
+    Normalize Persian text:
+    - Arabic ي -> Persian ی
+    - Arabic ك -> Persian ک
+    - Remove extra spaces
+    - Trim text
+    """
+    if not text:
+        return ''
+
+    replacements = {
+        'ي': 'ی',
+        'ك': 'ک',
+        '‌': ' ',  # replace ZWNJ (zero-width non-joiner) with space
+        '‏': '',   # remove RTL mark
+    }
+
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+
+    # Normalize multiple spaces to single space
+    text = ' '.join(text.split())
+
+    return text.strip()
 
 # -------------------------------
 # Generate short codes dynamically
 # -------------------------------
-def generate_short_codes(length=2):
+def generate_short_codes(length=3):
     return ("".join(p) for p in itertools.product(SHORT_CHARS, repeat=length))
 
 
@@ -78,11 +104,15 @@ def main():
     users = read_csv(CSV_PATH)
     used_codes = load_used_codes()
 
-    code_length = 2
+    code_length = 3
     short_code_gen = generate_short_codes(code_length)
     all_rows = []  # Collect all rows for a single Excel sheet
 
     for user in users:
+        # Skip if phone number is missing
+        if not user.get('MOBILE'):
+            # print(f"Skipping {user.get('FIRST_NAME', '')} {user.get('LAST_NAME', '')} – no phone number")
+            continue
         # Get next unique code
         try:
             code = next(short_code_gen)
@@ -113,13 +143,13 @@ def main():
 
         details = result_map.get(code, {})
         all_rows.append({
-            'Short Code': code,
-            'Short Link': f"{SHORT_LINK_BASE}{code}",  # <-- added short link
-            'URL': details.get('url', BASE_URL),
-            'Name': details.get('name', user['FIRST_NAME'] + ' ' + user['LAST_NAME']),
+            'Short_link': f"{SHORT_LINK_BASE}{code}",  
+            'First_name': normalize_persian(user.get('FIRST_NAME', '')),
             'Phone': details.get('phone', user['MOBILE']),
-            'User First Name': user.get('FIRST_NAME', ''),
-            'User Last Name': user.get('LAST_NAME', ''),
+            'Short Code': code,
+            'URL': details.get('url', BASE_URL),
+            'Name': normalize_persian(details.get('name', user['FIRST_NAME'] + ' ' + user['LAST_NAME'])),
+            'User Last Name': normalize_persian(user.get('LAST_NAME', '')),
             'User Mobile': user.get('MOBILE', '')
         })
 

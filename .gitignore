@@ -3,3 +3,4 @@ output_map.xlsx
 backend/output_map*
 backend/used_codes.json
 backend/Birth_*
+backend/~*.xlsx

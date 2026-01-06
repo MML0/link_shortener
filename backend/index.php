@@ -16,7 +16,9 @@ if ($link) {
     $adminChatId = $config['telegram']['admin_chatid'];
     $message = "Link accessed: {$link['short_code']}\n";
     // $message .= "Long URL: {$link['long_url']}\n";
-    $message .= "Hits: {$link['hits']}\n";
+    // $message .= "Hits: {$link['hits']}\n";
+    $hits_plus_one = $link['hits'] + 1;
+    $message .= "Hits: $hits_plus_one\n";
     $message .= "Name: {$link['name']}\n";
     $message .= "Phone: {$link['phone']}\n";
     $phone = $link['phone'];
